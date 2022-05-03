@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v4.js"></script>
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+<script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
+<link rel="stylesheet" href="vis_3.css">
+
+<!-- Create an element where the map will take place -->
+<svg class= "centre" id="world_choropleth" width="1400" height="500" viewBox="100 -200 300 400"></svg>
+<div class="centre" id="date_slider"></div>
+<div id="date_label" class="centre">
+    <label id="d_label"></label>
+</div>
+<script>
+
+    // The svg
+    var svg = d3.select("#world_choropleth")
+        .call(d3.zoom().on("zoom", function () {
+            svg.attr("transform", d3.event.transform)
+        }))
+        .append("g"),
+        width = +svg.attr("width"),
+        height = +svg.attr("height");
+
+    // Map and projection
+    var path = d3.geoPath();
+    var projection = d3.geoMercator()
+        .scale(60)
+        .center([0,20])
+        .translate([width / 2, height / 2]);
+
+    // Data and color scale
+    var data = d3.map();
+    var dates_data = {};
+    var dates = [];
+
+    var colorScale = d3.scaleOrdinal()
+        .domain([0, 18000])
+        .range(d3.schemeYlOrBr[7]);
+
+    // Load external data and boot
+    d3.queue()
+        .defer(d3.json, "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
+        .defer(d3.csv, "data/owid-covid-data.csv")
+        .await(ready);
+
+    function ready(error, result, csv) {
+
+        for (let i = 0; i < csv.length; i++) {
+            var date = csv[i].date;
+            if (!(date in dates_data)) {
+                dates.push(date);
+                dates_data[date] = [];
+                dates_data[date].push(csv[i]);
+            }
+            else { dates_data[date].push(csv[i]); }
+            data.set(csv[i].iso_code, +csv[i].new_deaths);
+        }
+
+        console.log(dates_data)
+
+        const sortDates = dates.sort((a,b) => new Date(a) - new Date(b))
+
+        console.log(sortDates);
+
+        // Slider
+        d3.select("#date_slider")
+            .append("input")
+            .attr("type", "range")
+            .attr("min", 0)
+            .attr("max", dates.length - 1)
+            .attr("step", "1")
+            .attr("id", "date")
+            .attr("value", dates.length - 1)
+            .on("input", function input() {
+                update(result);
+            });
+
+        // Draw the map
+        svg.append("g")
+            .selectAll("path")
+            .data(result.features)
+            .enter()
+            .append("path")
+            // draw each country
+            .attr("d", d3.geoPath()
+                .projection(projection)
+            )
+            // set the color of each country
+            .attr("fill", function (d) {
+                d.total = data.get(d.id) || 0;
+                return colorScale(d.total);
+            });
+
+        d3.select("#d_label").text("Date: " + date)
+    }
+
+    function update(result) {
+        const slider_val = document.getElementById("date").value;
+        const date = dates[slider_val]
+        const date_data = dates_data[date]
+        for (let i = 0; i < date_data.length; i++) {
+            data.set(date_data[i].iso_code, date_data[i].new_deaths);
+        }
+
+        svg.selectAll("*").remove();
+
+        svg.append("g")
+            .selectAll("path")
+            .data(result.features)
+            .enter()
+            .append("path")
+            // draw each country
+            .attr("d", d3.geoPath()
+                .projection(projection)
+            )
+            // set the color of each country
+            .attr("fill", function (d) {
+                d.total = data.get(d.id) || 0;
+                return colorScale(d.total);
+            });
+
+        d3.select("#d_label").text("Date: " + date)
+    }
+
+</script>

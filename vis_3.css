@@ -1,0 +1,9 @@
+.centre {
+    display: flex;
+    justify-content: center;
+    text-align: center;
+}
+
+input[type="range" i] {
+    width: 500px;
+}
