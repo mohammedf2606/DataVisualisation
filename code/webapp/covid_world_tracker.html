@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<!-- General styles -->
+<link rel="stylesheet" type="text/css" href="assets/css/styles.css">
+
+<!-- Bootstrap -->
+<link rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+      integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+      crossorigin="anonymous">
+<head>
+    <meta charset="UTF-8">
+    <title>Covid-19 world tracker</title>
+    <!--  Libraries  -->
+    <script type="text/javascript" src="assets/js/lib/d3.min.js"></script>
+    <script type="text/javascript" src="assets/js/lib/d3-simple-slider.js"></script>
+
+    <!--  Scripts  -->
+    <script src="assets/js/helperFunctions.js"></script>
+    <script src="assets/js/legends.js"></script>
+</head>
+<body class="container">
+<!-- Visualization -->
+<div class="container border p-3 m-3 bg-white rounded">
+    <!-- Title -->
+    <h3 style="text-align:center">
+        <b>Covid-19 world tracker visualization</b>
+    </h3>
+    <hr>
+
+    <!-- Chart -->
+    <div class="container row">
+        <!-- Scatter plot -->
+        <div class="container col-10">
+            <div class="container" id="GraphDiv"></div>
+        </div>
+
+        <!-- Date slider -->
+        <div class="container col-2">
+            <p>Report date</p>
+            <div class="container border p-0 m-0 bg-light rounded" id="slider-vertical"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Visualization description -->
+<div class="container border p-3 m-3 bg-white rounded">
+    <h3><b>Visualization description</b></h3>
+    <hr>
+
+    <h5><b>Track 1 question: Analyse the spread trend of the virus all over the world. What is the spread over time?</b></h5>
+
+    <p>
+        This visualization tracks the Covid-19 pandemic throughout the world from 2020-01-06 to 2020-12-14. It shows that at
+        the beginning of the year, from January to May, Asia and Europe are hit by a serge in cases and deaths. By July, these
+        drop in both continents. From June to August, America experiences a sharp increase in cases and deaths. Alongside Brazil,
+        the USA and Mexico; South Africa and India also become affected in this period. In September, a second wave affects mainly
+        Europe, America and Asia, causing a sharp increase in cases, followed by a sharp increase in deaths shortly after.
+        The end of the year (and of the available data) sees cases and deaths starting to decrease in most regions, except in the
+        United States, which in December breaks a world record of 1499756 cases and 16867 deaths in a week.
+    </p>
+
+    <p>
+        The visualization indicates that countries with larger populations tend to peak higher in all covid metrics than those with
+        smaller ones. the USA, Mexico, Russia, the UK and India are all examples of this in their respective continents. On
+        a countries basis, Europe is the most affected continent, with Africa and Oceania being the least. China is a left
+        leaning outlier, recording very low number of cases and deaths even during waves. The USA on the other hand, is an extreme
+        right leaning outlier, having the highest number of both deaths and cases in most weekly reports.
+    </p>
+
+    <h5><b>1. Encodings</b></h5>
+
+    <p>Most of the encodings remain true to their design in Part 2, with a few changes.</p>
+    <ul>
+        <li>Country/Territory name - Hovering tooltip</li>
+        <li>Continent - Mark colour</li>
+        <li>Population - Mark size</li>
+        <li>Date reported - Time slider and animation</li>
+        <li>Cases - x axis</li>
+        <li>Deaths - y axis</li>
+        <li>R-value - Mark border colour</li>
+    </ul>
+
+    <h5><b>2. Visualization design features</b></h5>
+
+    <h6><b>2.1. Dynamic components</b></h6>
+
+    <p>
+        All components are programmatically generated based on the input dataset. The chart, its legend, and the date slider
+        will adapt automatically to any new data, as long as it is in the same format as the original dataset. New continents
+        will appear in the legend and new dates will be added to the selection range in the slider.
+    </p>
+
+    <h6><b>2.2. Axes rescaling trickery</b></h6>
+
+    <p>
+        I considered two ways to handle axis scaling while maintaining a uniform scale. One option is to set the upper limit to
+        the largest value in the dataset. This will make small changes in the data harder to notice, specially during early
+        reports. The other option is to adjust the axis to only encapsulate the range of the currently selected data. Its
+        downside is that it causes axis downscaling as well as upscaling and it can make comparative analysis more difficult.
+    </p>
+
+    <p>
+        The final solution offers a combination of the two options: the axes maximum values are set to the largest values seen
+        thus far (removing downscaling) and selecting the earliest date in the selection resets both scales to their lowest
+        possible values (which is set to 1). This solution makes small changes noticeable while sliding up the time series. It
+        also offers a view of the data without axis rescaling by moving the slider down to just before the earliest date and
+        up again. Lastly, it allows for the full animation to be run from the beginning by resetting all scaling when the earliest date
+        is selected.
+
+        (It's easier if you just try the slider yourself)
+    </p>
+
+    <p>
+        Evidence of the effectiveness of the solution is the following scenario: Sliding up to the range 2020-03-16 to 2020-03-30
+        shows the devastating increase in cases and deaths in Italy that was at the time broadcasted in shock all over the
+        world. The Italy marker is shown far away from the rest in the top right of the chart. Sliding down to the same range
+        having rescaled the axes shows how small the effects were in comparison to the USA statistics. Now the Italy marker
+        appears to be another point in a compact cluster.
+    </p>
+
+    <h5><b>3. Data processing</b></h5>
+
+    <p>
+        The visualization uses the covidReports_countries.csv dataset which is built from the provided dataset from Track 1
+        and the countriesGDP.csv dataset found at
+        <a href="https://data.worldbank.org/indicator/NY.GDP.MKTP.CD">https://data.worldbank.org/indicator/NY.GDP.MKTP.CD</a>.
+        Although the information
+        from the latter is not present in the scatter plot, the dataset is heavily manipulated through the following operations:
+    </p>
+
+    <ol>
+        <li><b>Set all negative values for cases and deaths to 0.</b> Negative entries are rectifications for previous misreporting
+        of cases or deaths. Since the visualization doesn't apply commutative operations, these negative values can be omitted</li>
+        <li><b>Convert date column to an unambiguous format.</b> The date format YYYY-mm-dd is easier to identify for a global
+        audience.</li>
+        <li><b>Equalizing number of reports by country.</b> In original dataset, some countries have reported statistics for
+        fewer dates than others. This causes their markers to appear in the visualization at different times, as well as radical
+        changes in their position due to extreme value changes. To solve both of these issues, each country has reports for all
+        missing dates added on. When applicable, cases and deaths figures are averaged from neighbouring reports (smoothing the dataset).</li>
+        <li><b>Group reports by week.</b> Since the visualization does not support date granularity specification by the user, weekly
+        reports are a healthy middle ground between daily and monthly. This aggregation also helps to smooth out large value
+        changes and increase the accuracy of all the derived attributes like the r-value. </li>
+        <li><b>R-value calculation.</b> This attribute is derived from the change in the number of cases during a time period. It
+        expresses how infectious the virus is.</li>
+        <li><b>Case rate calculation.</b> A derived attribute calculating the percentage of the population that is infected.</li>
+        <li><b>Death rate calculation.</b> A derived attribute calculating the percentage of people that dies, while infected.</li>
+        <li><b>Rounding numeric columns to 3 dps.</b> Rounding to 3 dps is a good trade off between accuracy and readability.</li>
+        <li><b>Sorting.</b> The dataset is sorted in decreasing order by population size so marks for countries with lower population totals
+        are drawn on screen above those with larger populations. Also in increasing order by report date.</li>
+    </ol>
+</div>
+
+<!-- Visualization script -->
+<script src="assets/js/visualization.js"></script>
+</body>
+</html>

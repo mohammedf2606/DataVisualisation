@@ -16,7 +16,6 @@
 d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
 
     let clades = [...new Set(data.map(d => d.clade_membership))]
-    console.log(clades);
 
     const margin = {top: 50, right: 150, bottom: 60, left: 60},
         width = 1920 - margin.left - margin.right,
@@ -95,17 +94,17 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
         .style("color", "white")
 
     // -2- Create 3 functions to show / update (when mouse move but stay on same circle) / hide the tooltip
-    const showTooltip = function(event,d) {
+    const showTooltip = function(event) {
         tooltip
             .transition()
             .duration(200)
         tooltip
             .style("opacity", 1)
-            .html("Strain: " + d.strain)
+            .html("Strain: " + event.strain)
             .style("left", (event.x)/2 + "px")
             .style("top", (event.y)/2-50 + "px")
     }
-    const moveTooltip = function(event, d) {
+    const moveTooltip = function(event) {
         tooltip
             .style("left", (event.x)/2 + "px")
             .style("top", (event.y)/2-50 + "px")
@@ -116,10 +115,6 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
             .duration(200)
             .style("opacity", 0)
     }
-
-    // ---------------------------//
-    //       HIGHLIGHT GROUP      //
-    // ---------------------------//
 
     // What to do when one group is hovered
     const highlight = function(event, d){
@@ -134,21 +129,17 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
         d3.selectAll(".bubbles").style("opacity", 1)
     }
 
-
-    // ---------------------------//
-    //       CIRCLES              //
-    // ---------------------------//
-
     // Add bubbles
     svg.append('g')
-        .selectAll("dot")
+        .selectAll("circle")
         .data(data)
         .join("circle")
-        .attr("class", function(d) { return "bubbles " + d.clade_membership })
+        .attr("class", "bubbles")
         .attr("cx", d => x(new Date(d.date)))
-        .attr("cy", d => y(+d.s1_mutations))
+        .attr("cy", d => y(+d.S1_mutations))
         .attr("r", d => z(+d.mutational_fitness))
         .style("fill", d => myColor(d.clade_membership))
+        .style("stroke-width", "2px")
         // -3- Trigger the functions for hover
         .on("mouseover", showTooltip )
         .on("mousemove", moveTooltip )
@@ -157,7 +148,7 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
 
     // Add one dot in the legend for each name.
     const size = 20
-    legend.selectAll("myrect")
+    legend.selectAll("circle_leg")
         .data(clades)
         .join("circle")
         .attr("cx", 100)

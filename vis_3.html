@@ -5,6 +5,8 @@
 <script src="https://d3js.org/d3.v4.js"></script>
 <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
 <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
+<script src="libraries/colorLegend.js"></script>
+
 <link rel="stylesheet" href="vis_3.css">
 
 <!-- Create an element where the map will take place -->
@@ -27,18 +29,15 @@
     // Map and projection
     var path = d3.geoPath();
     var projection = d3.geoMercator()
-        .scale(60)
-        .center([0,20])
+        .scale(75)
+        .center([0, 20])
         .translate([width / 2, height / 2]);
 
     // Data and color scale
     var data = d3.map();
     var dates_data = {};
     var dates = [];
-
-    var colorScale = d3.scaleOrdinal()
-        .domain([0, 18000])
-        .range(d3.schemeYlOrBr[7]);
+    var maxDeaths = d3.map();
 
     // Load external data and boot
     d3.queue()
@@ -50,6 +49,9 @@
 
         for (let i = 0; i < csv.length; i++) {
             var date = csv[i].date;
+            if (!(date in maxDeaths) || (maxDeaths[date] < csv[i].new_deaths)) {
+                maxDeaths.set(date, csv[i].new_deaths);
+            }
             if (!(date in dates_data)) {
                 dates.push(date);
                 dates_data[date] = [];
@@ -59,11 +61,14 @@
             data.set(csv[i].iso_code, +csv[i].new_deaths);
         }
 
-        console.log(dates_data)
-
         const sortDates = dates.sort((a,b) => new Date(a) - new Date(b))
 
-        console.log(sortDates);
+        var colourScale = d3.scaleSequential(d3.interpolateYlOrBr).domain([0, 1000]);
+
+        const minDate = dates[0];
+        var legend = Legend(colourScale, {
+            title: "Temperature (°F)"
+        })
 
         // Slider
         d3.select("#date_slider")
@@ -75,7 +80,7 @@
             .attr("id", "date")
             .attr("value", dates.length - 1)
             .on("input", function input() {
-                update(result);
+                update(result, colourScale);
             });
 
         // Draw the map
@@ -91,13 +96,13 @@
             // set the color of each country
             .attr("fill", function (d) {
                 d.total = data.get(d.id) || 0;
-                return colorScale(d.total);
+                return colourScale(d.total);
             });
-
+        svg.append();
         d3.select("#d_label").text("Date: " + date)
     }
 
-    function update(result) {
+    function update(result, colourScale) {
         const slider_val = document.getElementById("date").value;
         const date = dates[slider_val]
         const date_data = dates_data[date]
@@ -119,7 +124,7 @@
             // set the color of each country
             .attr("fill", function (d) {
                 d.total = data.get(d.id) || 0;
-                return colorScale(d.total);
+                return colourScale(d.total);
             });
 
         d3.select("#d_label").text("Date: " + date)
