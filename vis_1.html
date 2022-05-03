@@ -18,16 +18,22 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
     let clades = [...new Set(data.map(d => d.clade_membership))]
     console.log(clades);
 
-    const margin = {top: 20, right: 150, bottom: 20, left: 30},
+    const margin = {top: 50, right: 150, bottom: 60, left: 60},
         width = 1920 - margin.left - margin.right,
         height = 900 - margin.top - margin.bottom;
 
     const legend = d3.select("#legend")
         .append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", 220)
+        .data(data)
+        .enter()
         .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", 200)
+        .attr("transform", function(d,i) {
+            xOff = (i % 4) * 50
+            yOff = Math.floor(i  / 4) * 10
+            return "translate(" + xOff + "," + yOff + ")"
+        })
 
     // append the svg object to the body of the page
     const svg = d3.select("#my_dataviz")
@@ -68,8 +74,8 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
 
     // Add a scale for bubble size
     const z = d3.scaleSqrt()
-        .domain([-0.01, 1.4])
-        .range([2, 30]);
+        .domain([-0.01, 1.40])
+        .range([2, 20]);
 
     // Add a scale for bubble color
     const myColor = d3.scaleOrdinal()
@@ -133,16 +139,16 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
     //       CIRCLES              //
     // ---------------------------//
 
-    // Add dots
+    // Add bubbles
     svg.append('g')
         .selectAll("dot")
         .data(data)
         .join("circle")
-        .attr("class", function(d) { return "bubbles " + d.strain })
+        .attr("class", function(d) { return "bubbles " + d.clade_membership })
         .attr("cx", d => x(d.date))
         .attr("cy", d => y(d.s1_mutations))
-        .attr("r", d => z(d.pop))
-        .style("fill", d => myColor(d.strain))
+        .attr("r", d => z(d.mutational_fitness))
+        .style("fill", d => myColor(d.clade_membership))
         // -3- Trigger the functions for hover
         .on("mouseover", showTooltip )
         .on("mousemove", moveTooltip )
@@ -171,7 +177,7 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
         .style("fill", d => myColor(d))
         .text(d => d)
         .attr("text-anchor", "left")
-        // .style("alignment-baseline", "middle")
+        .style("alignment-baseline", "middle")
         .on("mouseover", highlight)
         .on("mouseleave", noHighlight)
 
