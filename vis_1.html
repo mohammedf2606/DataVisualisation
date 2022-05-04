@@ -7,12 +7,69 @@
     <script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-interpolate@3"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-scale-chromatic@3"></script>
+    <link rel="stylesheet" href="vis_1.css">
 </head>
 <body>
-<div id="legend"></div>
-<div id="my_dataviz"></div>
+<div id="legend" class="centre"></div>
+<div id="my_dataviz" class="centre"></div>
 </body>
 <script>
+
+function cladeColourEncoder(d, clades) {
+    const myColor = d3.scaleOrdinal()
+        .domain(clades)
+        .range(clades.map((val, i) =>
+            d3.interpolateTurbo(i / (clades.length))
+        ));
+    return myColor(d);
+}
+
+function addCladeColourLegend(svg, clades) {
+
+    const highlight = function(event, d){
+        // reduce opacity of all groups
+        d3.selectAll(".bubbles").style("opacity", .05)
+        // expect the one that is hovered
+        console.log(event);
+        console.log(d);
+        d3.selectAll(".bubbles "+ event.clade_membership).style("opacity", 1)
+    }
+
+    // And when it is not hovered anymore
+    const noHighlight = function(event, d){
+        d3.selectAll(".bubbles").style("opacity", 1)
+    }
+
+    let x = 10;
+
+    const group = svg.append("g");
+
+    group.data(clades)
+        .append("rect")
+        .attr("x", x)
+        .attr("y", function(d,i){ return i * (10 + 5) + -90})
+        .attr("width", 10)
+        .attr("height", 10)
+        .attr("class", function(d) { return d })
+        .style("fill", function(d) { return cladeColourEncoder(d, clades)})
+        .style("opacity", 0.8)
+        .on("mouseover", highlight)
+        .on("mouseleave", noHighlight);
+
+    group.data(clades)
+        .append("text")
+        .attr("x", x + 15)
+        .attr("y", function(d,i){ return i * 15 + 10 + -90})
+        .style("fill", "black")
+        .text(function(d) { return d })
+        .attr("text-anchor", "left")
+        .style("alignment-baseline", "middle")
+        .style("font-size", "12px")
+        .on("mouseover", highlight)
+        .on("mouseleave", noHighlight);
+
+}
+
 d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
 
     let clades = [...new Set(data.map(d => d.clade_membership))]
@@ -20,19 +77,6 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
     const margin = {top: 50, right: 150, bottom: 60, left: 60},
         width = 1920 - margin.left - margin.right,
         height = 900 - margin.top - margin.bottom;
-
-    const legend = d3.select("#legend")
-        .append("svg")
-        .data(data)
-        .enter()
-        .append("g")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", 200)
-        .attr("transform", function(d,i) {
-            xOff = (i % 4) * 50
-            yOff = Math.floor(i  / 4) * 10
-            return "translate(" + xOff + "," + yOff + ")"
-        })
 
     // append the svg object to the body of the page
     const svg = d3.select("#my_dataviz")
@@ -45,9 +89,10 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
     const x = d3.scaleTime()
         .domain([new Date("2019-12-26"), new Date("2022-01-02")])
         .range([0, width]);
+
     svg.append("g")
         .attr("transform", `translate(0, ${height})`)
-        .call(d3.axisBottom(x).ticks(30));
+        .call(d3.axisBottom(x).ticks(32));
 
     // Add X axis label:
     svg.append("text")
@@ -72,9 +117,9 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
         .attr("text-anchor", "start")
 
     // Add a scale for bubble size
-    const z = d3.scaleLinear()
+    const z = d3.scaleOrdinal()
         .domain([-0.01, 1.40])
-        .range([10, 30]);
+        .range([5, 14]);
 
     // Add a scale for bubble color
     const myColor = d3.scaleOrdinal()
@@ -84,7 +129,7 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
         ));
 
     // -1- Create a tooltip div that is hidden by default:
-    const tooltip = d3.select("#my_dataviz")
+    const tooltip = d3.select("#legend")
         .append("div")
         .style("opacity", 0)
         .attr("class", "tooltip")
@@ -116,25 +161,12 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
             .style("opacity", 0)
     }
 
-    // What to do when one group is hovered
-    const highlight = function(event, d){
-        // reduce opacity of all groups
-        d3.selectAll(".bubbles").style("opacity", .05)
-        // expect the one that is hovered
-        d3.selectAll("."+d).style("opacity", 1)
-    }
-
-    // And when it is not hovered anymore
-    const noHighlight = function(event, d){
-        d3.selectAll(".bubbles").style("opacity", 1)
-    }
-
     // Add bubbles
     svg.append('g')
         .selectAll("circle")
         .data(data)
         .join("circle")
-        .attr("class", "bubbles")
+        .attr("class", d => "bubbles " + d.clade_membership)
         .attr("cx", d => x(new Date(d.date)))
         .attr("cy", d => y(+d.S1_mutations))
         .attr("r", d => z(+d.mutational_fitness))
@@ -145,32 +177,19 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
         .on("mousemove", moveTooltip )
         .on("mouseleave", hideTooltip )
 
+    const leg_margin = {left: 60, top: 100}
 
-    // Add one dot in the legend for each name.
-    const size = 20
-    legend.selectAll("circle_leg")
-        .data(clades)
-        .join("circle")
-        .attr("cx", 100)
-        .attr("cy", (d,i) => 10 + i*(size+5)) // 100 is where the first dot appears. 25 is the distance between dots
-        .attr("r", 7)
-        .style("fill", d =>  myColor(d))
-        .on("mouseover", highlight)
-        .on("mouseleave", noHighlight)
+    var legSVG = d3.select("#legend")
+        .append("div")
+        .append("svg")
+        .attr("id", "leg_svg")
+        .attr("width", 400)
+        .attr("height", 100)
+        .append("g")
+        .attr("transform", `translate(${leg_margin.left},${leg_margin.top})`)
 
-    // Add labels beside legend dots
-    legend.selectAll("mylabels")
-        .data(clades)
-        .enter()
-        .append("text")
-        .attr("x", 100 + size*.8)
-        .attr("y", (d,i) =>  i * (size + 5) + (size/2)) // 100 is where the first dot appears. 25 is the distance between dots
-        .style("fill", d => myColor(d))
-        .text(d => d)
-        .attr("text-anchor", "left")
-        .style("alignment-baseline", "middle")
-        .on("mouseover", highlight)
-        .on("mouseleave", noHighlight)
+    addCladeColourLegend(legSVG, clades);
+
 
 })
 

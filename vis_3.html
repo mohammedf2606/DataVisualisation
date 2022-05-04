@@ -5,7 +5,6 @@
 <script src="https://d3js.org/d3.v4.js"></script>
 <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
 <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
-<script src="libraries/colorLegend.js"></script>
 
 <link rel="stylesheet" href="vis_3.css">
 
@@ -63,12 +62,10 @@
 
         const sortDates = dates.sort((a,b) => new Date(a) - new Date(b))
 
-        var colourScale = d3.scaleSequential(d3.interpolateYlOrBr).domain([0, 1000]);
+        var colourScale = d3.scaleSequential(d3.interpolateYlOrBr)
+            .domain([0, maxDeaths.get(dates[dates.length - 1])]);
 
         const minDate = dates[0];
-        var legend = Legend(colourScale, {
-            title: "Temperature (°F)"
-        })
 
         // Slider
         d3.select("#date_slider")
@@ -80,7 +77,7 @@
             .attr("id", "date")
             .attr("value", dates.length - 1)
             .on("input", function input() {
-                update(result, colourScale);
+                update(result);
             });
 
         // Draw the map
@@ -102,13 +99,16 @@
         d3.select("#d_label").text("Date: " + date)
     }
 
-    function update(result, colourScale) {
+    function update(result) {
         const slider_val = document.getElementById("date").value;
         const date = dates[slider_val]
         const date_data = dates_data[date]
         for (let i = 0; i < date_data.length; i++) {
             data.set(date_data[i].iso_code, date_data[i].new_deaths);
         }
+
+        var colourScale = d3.scaleSequential(d3.interpolateYlOrBr)
+            .domain([0, maxDeaths.get(dates[dates.length - 1])]);
 
         svg.selectAll("*").remove();
 
