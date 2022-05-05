@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>COVID-19 Mutations</title>
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-interpolate@3"></script>
@@ -10,6 +10,9 @@
     <link rel="stylesheet" href="vis_1.css">
 </head>
 <body>
+<h1 class="centre">
+    COVID-19 Mutations
+</h1>
 <div id="legend" class="centre"></div>
 <div id="my_dataviz" class="centre"></div>
 </body>
@@ -24,11 +27,11 @@ function cladeColourEncoder(d, clades) {
     return myColor(d);
 }
 
-const highlight = function(event){
+const highlight = function(event, d){
     // reduce opacity of all groups
     d3.selectAll(".bubbles").style("opacity", .05)
     // expect the one that is hovered
-    d3.selectAll(".leg_"+event.toString()).style("opacity", 1)
+    d3.selectAll(".leg_"+d[event].replace(/\(|\)/g, "").split(" ").join("_")).style("opacity", 1)
 }
 
 // And when it is not hovered anymore
@@ -56,27 +59,27 @@ function addCladeColourLegend(svg, clades) {
         leg_entry.data(clades)
             .append("rect")
             .attr("x", x)
-            .attr("y", function(){ return y })
+            .attr("y", y)
             .attr("width", 10)
             .attr("height", 10)
             .attr("id", function() { return clades[i]; })
             .style("fill", function() { return cladeColourEncoder(clades[i], clades)})
             .style("opacity", 0.8)
-            .on("mouseover", highlight)
-            .on("mouseleave", noHighlight);
+            .on("mouseover", () => highlight(i, clades))
+            .on("mouseleave", () => noHighlight(i, clades));
 
         leg_entry.data(clades)
             .append("text")
             .attr("x", x + 15)
-            .attr("y", function(){ return y + 5 })
+            .attr("y", y + 5 )
             .attr("id", function() { return clades[i]; })
             .style("fill", "black")
             .text(function() { return clades[i] })
             .attr("text-anchor", "left")
             .style("alignment-baseline", "middle")
             .style("font-size", "12px")
-            .on("mouseover", highlight)
-            .on("mouseleave", noHighlight);
+            .on("mouseover", () => highlight(i, clades))
+            .on("mouseleave", () => noHighlight(i, clades));
     }
 
 }
@@ -128,9 +131,9 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
         .attr("text-anchor", "start")
 
     // Add a scale for bubble size
-    const z = d3.scaleOrdinal()
+    const z = d3.scaleLinear()
         .domain([-0.01, 1.40])
-        .range([5, 14]);
+        .range([5, 20]);
 
     // Add a scale for bubble color
     const myColor = d3.scaleOrdinal()
@@ -139,11 +142,15 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
             d3.interpolateTurbo(i / (clades.length))
         ));
 
+    var persist = false;
+
     // -1- Create a tooltip div that is hidden by default:
     const tooltip = d3.select("#legend")
         .append("div")
         .style("opacity", 0)
-        .attr("class", "tooltip")
+        .style("width", "300px")
+        .style("height", "20px")
+        .attr("class", "tooltip centre")
         .style("background-color", "black")
         .style("border-radius", "5px")
         .style("padding", "10px")
@@ -151,11 +158,13 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
 
     // -2- Create 3 functions to show / update (when mouse move but stay on same circle) / hide the tooltip
     const showTooltip = function(event) {
+        persist = false;
         tooltip
             .transition()
             .duration(200)
         tooltip
             .style("opacity", 1)
+            .style("height", "20px")
             .html("Strain: " + event.strain)
             .style("left", (event.x)/2 + "px")
             .style("top", (event.y)/2-50 + "px")
@@ -166,21 +175,33 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
             .style("top", (event.y)/2-50 + "px")
     }
     const hideTooltip = function(event, d) {
-        tooltip
-            .transition()
-            .duration(200)
-            .style("opacity", 0)
+        if (persist === false){
+            tooltip
+                .transition()
+                .duration(200)
+                .style("opacity", 0)
+        }
     }
 
     const showFullTooltip = function(event, d) {
+        persist = true;
         tooltip
             .transition()
             .duration(200)
         tooltip
             .style("opacity", 1)
+            .style("height", "130px")
             .style("left", (event.x)/2 + "px")
             .style("top", (event.y)/2-50 + "px")
-            .html("Strain: " + event.strain)
+            .html(
+                "Strain: " + event.strain + "<br>" +
+                "Clade: " + event.clade_membership + "<br>" +
+                "Country: " + event.country + "<br>" +
+                "Origin Date: " + event.date + "<br>" +
+                "Epiweek: " + event.epiweek + "<br>" +
+                "Host: " + event.host + "<br>" +
+                "Recency: " + event.recency
+            )
     }
 
     // Add bubbles
@@ -188,28 +209,42 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
         .selectAll("circle")
         .data(data)
         .join("circle")
-        .attr("class", d => "bubbles " + "leg_" + d.clade_membership)
+        .attr("class", d => "bubbles " + "leg_" + d.clade_membership
+            .replace(/\(|\)/g, "")
+            .split(" ")
+            .join("_")
+        )
         .attr("cx", d => x(new Date(d.date)))
         .attr("cy", d => y(+d.S1_mutations))
         .attr("r", d => z(+d.mutational_fitness))
         .style("fill", d => myColor(d.clade_membership))
         .style("stroke-width", "2px")
         // -3- Trigger the functions for hover
+        .on("click", showFullTooltip )
         .on("mouseover", showTooltip )
         .on("mousemove", moveTooltip )
         .on("mouseleave", hideTooltip )
-        .on("click", showFullTooltip )
+
 
     const leg_margin = {left: 60, top: 100}
 
     var legSVG = d3.select("#legend")
-        .append("div")
         .append("svg")
         .attr("id", "leg_svg")
         .attr("width", 700)
         .attr("height", 120)
         .append("g")
         .attr("transform", `translate(${leg_margin.left},${leg_margin.top})`)
+
+    d3.select("#leg_svg")
+        .append("g")
+        .attr("transform", `translate(${leg_margin.left},${leg_margin.top})`)
+        .append("circle")
+        .attr("cx", 0)
+        .attr("cy", 0)
+        .attr("r", 5)
+        .style("fill", "none")
+        .style("stroke-width", "2px")
 
     addCladeColourLegend(legSVG, clades);
 
