@@ -24,49 +24,60 @@ function cladeColourEncoder(d, clades) {
     return myColor(d);
 }
 
+const highlight = function(event){
+    // reduce opacity of all groups
+    d3.selectAll(".bubbles").style("opacity", .05)
+    // expect the one that is hovered
+    d3.selectAll(".leg_"+event.toString()).style("opacity", 1)
+}
+
+// And when it is not hovered anymore
+const noHighlight = function(event, d){
+    d3.selectAll(".bubbles").style("opacity", 1)
+}
+
 function addCladeColourLegend(svg, clades) {
-
-    const highlight = function(event, d){
-        // reduce opacity of all groups
-        d3.selectAll(".bubbles").style("opacity", .05)
-        // expect the one that is hovered
-        console.log(event);
-        console.log(d);
-        d3.selectAll(".bubbles "+ event.clade_membership).style("opacity", 1)
-    }
-
-    // And when it is not hovered anymore
-    const noHighlight = function(event, d){
-        d3.selectAll(".bubbles").style("opacity", 1)
-    }
-
     let x = 10;
+    let y = -100
 
     const group = svg.append("g");
 
-    group.data(clades)
-        .append("rect")
-        .attr("x", x)
-        .attr("y", function(d,i){ return i * (10 + 5) + -90})
-        .attr("width", 10)
-        .attr("height", 10)
-        .attr("class", function(d) { return d })
-        .style("fill", function(d) { return cladeColourEncoder(d, clades)})
-        .style("opacity", 0.8)
-        .on("mouseover", highlight)
-        .on("mouseleave", noHighlight);
+    for (let i = 0; i < clades.length; i++) {
 
-    group.data(clades)
-        .append("text")
-        .attr("x", x + 15)
-        .attr("y", function(d,i){ return i * 15 + 10 + -90})
-        .style("fill", "black")
-        .text(function(d) { return d })
-        .attr("text-anchor", "left")
-        .style("alignment-baseline", "middle")
-        .style("font-size", "12px")
-        .on("mouseover", highlight)
-        .on("mouseleave", noHighlight);
+        const leg_entry = group.append("g").attr("class", "leg_" + clades[i]);
+
+        if(i % 6 === 0 && i !== 0) {
+            x += 120;
+            y = -100
+        }
+
+        y += (i * 20) % 6 + 12
+
+        leg_entry.data(clades)
+            .append("rect")
+            .attr("x", x)
+            .attr("y", function(){ return y })
+            .attr("width", 10)
+            .attr("height", 10)
+            .attr("id", function() { return clades[i]; })
+            .style("fill", function() { return cladeColourEncoder(clades[i], clades)})
+            .style("opacity", 0.8)
+            .on("mouseover", highlight)
+            .on("mouseleave", noHighlight);
+
+        leg_entry.data(clades)
+            .append("text")
+            .attr("x", x + 15)
+            .attr("y", function(){ return y + 5 })
+            .attr("id", function() { return clades[i]; })
+            .style("fill", "black")
+            .text(function() { return clades[i] })
+            .attr("text-anchor", "left")
+            .style("alignment-baseline", "middle")
+            .style("font-size", "12px")
+            .on("mouseover", highlight)
+            .on("mouseleave", noHighlight);
+    }
 
 }
 
@@ -92,7 +103,7 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
 
     svg.append("g")
         .attr("transform", `translate(0, ${height})`)
-        .call(d3.axisBottom(x).ticks(32));
+        .call(d3.axisBottom(x).ticks(15));
 
     // Add X axis label:
     svg.append("text")
@@ -161,12 +172,23 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
             .style("opacity", 0)
     }
 
+    const showFullTooltip = function(event, d) {
+        tooltip
+            .transition()
+            .duration(200)
+        tooltip
+            .style("opacity", 1)
+            .style("left", (event.x)/2 + "px")
+            .style("top", (event.y)/2-50 + "px")
+            .html("Strain: " + event.strain)
+    }
+
     // Add bubbles
     svg.append('g')
         .selectAll("circle")
         .data(data)
         .join("circle")
-        .attr("class", d => "bubbles " + d.clade_membership)
+        .attr("class", d => "bubbles " + "leg_" + d.clade_membership)
         .attr("cx", d => x(new Date(d.date)))
         .attr("cy", d => y(+d.S1_mutations))
         .attr("r", d => z(+d.mutational_fitness))
@@ -176,6 +198,7 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
         .on("mouseover", showTooltip )
         .on("mousemove", moveTooltip )
         .on("mouseleave", hideTooltip )
+        .on("click", showFullTooltip )
 
     const leg_margin = {left: 60, top: 100}
 
@@ -183,8 +206,8 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
         .append("div")
         .append("svg")
         .attr("id", "leg_svg")
-        .attr("width", 400)
-        .attr("height", 100)
+        .attr("width", 700)
+        .attr("height", 120)
         .append("g")
         .attr("transform", `translate(${leg_margin.left},${leg_margin.top})`)
 
