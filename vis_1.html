@@ -190,11 +190,12 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
             .duration(200)
         tooltip
             .style("opacity", 1)
-            .style("height", "130px")
+            .style("height", "150px")
             .style("left", (event.x)/2 + "px")
             .style("top", (event.y)/2-50 + "px")
             .html(
                 "Strain: " + event.strain + "<br>" +
+                "Mutational fitness: " + event.mutational_fitness + "<br>" +
                 "Clade: " + event.clade_membership + "<br>" +
                 "Country: " + event.country + "<br>" +
                 "Origin Date: " + event.date + "<br>" +
@@ -240,7 +241,6 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
         .attr("transform", `translate(${leg_margin.left},${leg_margin.top})`)
 
     addCladeColourLegend(legSVG, clades);
-
 
 })
 
