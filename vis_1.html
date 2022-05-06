@@ -149,7 +149,7 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
         .append("div")
         .style("opacity", 0)
         .style("width", "300px")
-        .style("height", "20px")
+        .style("height", "30px")
         .attr("class", "tooltip centre")
         .style("background-color", "black")
         .style("border-radius", "5px")
@@ -164,7 +164,7 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
             .duration(200)
         tooltip
             .style("opacity", 1)
-            .style("height", "20px")
+            .style("height", "30px")
             .html("Strain: " + event.strain)
             .style("left", (event.x)/2 + "px")
             .style("top", (event.y)/2-50 + "px")
@@ -190,7 +190,7 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
             .duration(200)
         tooltip
             .style("opacity", 1)
-            .style("height", "150px")
+            .style("height", "200px")
             .style("left", (event.x)/2 + "px")
             .style("top", (event.y)/2-50 + "px")
             .html(
