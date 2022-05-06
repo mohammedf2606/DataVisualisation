@@ -231,6 +231,8 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
 
     var legSVG = d3.select("#legend")
         .append("label")
+        .append("b")
+        .style("font-size", "14pt")
         .text("Clades")
         .append("div")
         .append("svg")
@@ -245,4 +247,35 @@ d3.tsv("data/nextstrain_ncov_open_global_metadata.tsv").then( function(data) {
 })
 
 </script>
+<div class="centre">
+    <h1>Data Processing</h1>
+</div>
+<div class="text">
+
+    <p>
+        This visualisation uses the provided nextstrain_ncov_open_global_metadata.tsv dataset (which can also be found at
+        <a href="https://nextstrain.org/ncov/gisaid/global/all-time">https://nextstrain.org/ncov/gisaid/global/all-time</a>). The bubble plot utilises a couple of the attributes
+        from this dataset. However, as a part of the visualisation, some of the data is
+        processed to enhance the visualisation. This includes the following:
+    </p>
+</div>
+<div class="text">
+    <ul>
+        <li>
+            <b>Group strains by clade membership</b>: Each clade is given a unique colour and this is applied to each strain
+            to group it with the corresponding clade and displayed with a legend to identify the clades. This also helps with
+            the clade isolation that occurs when a user hovers over each clade in the legend. The different groups can also
+            be used to detect the seasonal trends that the original question seeks to observe.
+        </li>
+        <li>
+            <b>Mutational fitness to bubble size calculation</b>: For each strain, the mutational fitness is translated to
+            a radius for the bubble size using a continuous linear scale.
+        </li>
+        <li>
+            <b>Convert date column to ISO 8601 date format</b>: The dates are formatted to the YYYY-mm-dd date format which
+            is known as the international date format, making the date globally recognisable and removes any ambiguity.
+        </li>
+    </ul>
+</div>
+
 </html>

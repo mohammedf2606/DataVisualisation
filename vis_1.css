@@ -1,3 +1,7 @@
+body {
+    font-family: "Calibri", serif;
+}
+
 .bubbles {
     stroke-width: 2px;
     stroke: black;
@@ -7,4 +11,12 @@
     display: flex;
     justify-content: center;
     text-align: center;
+}
+
+ul li {
+   padding: 5px;
+}
+
+.text {
+    padding: 10px;
 }
